@@ -41,7 +41,10 @@ const Fileuploader = ({onFileselect} : FileUploaderProps) => {
                         {formatSize(file.size)} </p>
                     </div>
                   </div>
-                  <button>
+                  <button className='p-2 cursor-pointer'onClick={(e)=>
+                    {
+                      onFileselect?.(null);
+                    }} >
                     <img src="/icons/cross.svg" alt="remove" className='w-4' />
                   </button>
                 </div>
