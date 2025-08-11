@@ -75,7 +75,7 @@ import { prepareInstructions } from 'constants/';
         setStatusText("Analysis complete , redirecting...");
 
         console.log("Resume Data:", data);
-
+        
     }
 
     const handleSubmit=(e: FormEvent<HTMLFormElement>)=>{
