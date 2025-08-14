@@ -1,4 +1,3 @@
-
 import {useState, type FormEvent,} from 'react'
 import { Navbar } from "../components/Navbar";
 import { Form, Navigate, useNavigate } from 'react-router';
@@ -20,15 +19,15 @@ import { prepareInstructions } from 'constants/';
         setFile(file);
         
     }
-    const handleAnalyze = async({companyName, jobTitle, jobDescription, file}: {
+    const handleAnalyze = async ({ companyName, jobTitle, jobDescription, file }: {
       companyName: string;
       jobTitle: string;
       jobDescription: string;
       file: File;
     }) => {
-
-      setIsProcessing(true);
-      setStatusText('Uploading The Resume...');
+      try {
+        setIsProcessing(true);
+        setStatusText('Uploading The Resume...');
 
         const uploadedFile = await fs.upload([file]);
 
@@ -59,23 +58,35 @@ import { prepareInstructions } from 'constants/';
         await kv.set(`resume:${uuid}`, JSON.stringify(data));
 
         setStatusText("Analyzing Resume...");
-
         const feedback = await ai.feedback(
             uploadedFile.path,
-            prepareInstructions({jobTitle,jobDescription })
-        )
-        if(!feedback) return setStatusText("Error : failed To Analyze Resume ..");
+            prepareInstructions({ jobTitle, jobDescription })
+        );
+        if (!feedback) return setStatusText("Error: Failed to analyze resume");
 
-       const feedbacktext = typeof feedback.message.content === 'string' 
-       ? feedback.message.content
-       : feedback.message.content[0].text;
-        data.feedback = JSON.parse(feedbacktext);
+        const feedbacktext = typeof feedback.message.content === 'string'
+            ? feedback.message.content
+            : feedback.message.content[0].text;
 
-        await kv.set(`resume:${uuid}`, JSON.stringify(data));
-        setStatusText("Analysis complete , redirecting...");
+        // Instead of parsing the feedback directly, check if it's valid JSON
+        try {
+            data.feedback = JSON.parse(feedbacktext);
+        } catch (error) {
+            // If parsing fails, store the feedback as a string
+            data.feedback = feedbacktext;
+            console.log('Feedback is not in JSON format:', feedbacktext);
+        }
 
-        console.log("Resume Data:", data);
+        await kv.set(`/resumes/${uuid}`, JSON.stringify(data));
+        setStatusText("Analysis complete, redirecting...");
         
+        // Add navigation after successful analysis
+        navigate(`/resume/${uuid}`);
+
+    } catch (error) {
+        console.error('Analysis error:', error);
+        setStatusText('An error occurred during analysis');
+    }
     }
 
     const handleSubmit=(e: FormEvent<HTMLFormElement>)=>{
