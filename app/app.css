@@ -17,7 +17,9 @@
   --color-badge-red-text: #752522;
   --color-badge-yellow-text: #73321b;
 }
-
+html {
+  scroll-behavior: smooth;
+}
 html,
 body {
   @apply bg-white;
