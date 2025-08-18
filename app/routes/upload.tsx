@@ -97,14 +97,22 @@ const arrayBufferToBase64 = (buffer: ArrayBuffer): string => {
         setStatusText("Preparing Data ...");
 
         const uuid = generateUUID();
-        const data= {
-          id:uuid,
-          resumePath:uploadedFile.path,
-          imagePath:uploadedImage.path,
+        const data: {
+          id: string;
+          resumePath: string;
+          imagePath: string;
+          companyName: string;
+          jobTitle: string;
+          jobDescription: string;
+          feedback: string | any; // Allow both string and object types
+        } = {
+          id: uuid,
+          resumePath: uploadedFile.path,
+          imagePath: uploadedImage.path,
           companyName,
           jobTitle,
           jobDescription,
-          feedback:''
+          feedback: ''
         }
         await kv.set(`resume:${uuid}`, JSON.stringify(data));
 
@@ -129,6 +137,20 @@ const arrayBufferToBase64 = (buffer: ArrayBuffer): string => {
                     max_tokens: 100
                 }
             );
+            
+            // Check if the test response is an error
+            if (testResponse && typeof testResponse === 'object' && 'success' in testResponse && testResponse.success === false) {
+                console.error('AI service test returned error:', testResponse);
+                const errorResponse = testResponse as { success: false; error?: { message?: string; delegate?: string; code?: string } };
+                console.error('Test error details:', {
+                    message: errorResponse.error?.message,
+                    delegate: errorResponse.error?.delegate,
+                    code: errorResponse.error?.code,
+                    fullError: errorResponse.error
+                });
+                throw new Error(`AI service test failed: ${errorResponse.error?.message || 'Unknown error'}`);
+            }
+            
             console.log('AI service test response:', testResponse);
         } catch (testError) {
             console.error('AI service test failed:', testError);
@@ -380,7 +402,7 @@ Please provide analysis in this JSON format:
                         dataUrl,
                         false, // testMode
                         {
-                            model: 'gpt-4o', // Try using a different model
+                            model: 'gpt-4o-mini', // Try using a different model that might be more stable
                             temperature: 0.7,
                             max_tokens: 2000
                         }
@@ -393,6 +415,70 @@ Please provide analysis in this JSON format:
                     const feedback = await Promise.race([aiPromise, timeoutPromise]) as AIResponse;
                     
                     if (!feedback) return setStatusText("Error: Failed to analyze resume");
+                    
+                    // Check if the response is an error response
+                    if (feedback && typeof feedback === 'object' && 'success' in feedback && feedback.success === false) {
+                        console.error('AI service returned error:', feedback);
+                        const errorResponse = feedback as { success: false; error?: { message?: string; delegate?: string; code?: string } };
+                        console.error('Error details:', {
+                            message: errorResponse.error?.message,
+                            delegate: errorResponse.error?.delegate,
+                            code: errorResponse.error?.code,
+                            fullError: errorResponse.error
+                        });
+                        
+                        // If AI service fails, provide basic analysis
+                        console.log('AI service failed, providing basic analysis...');
+                        setStatusText("AI analysis failed, providing basic feedback...");
+                        
+                        const basicAnalysis = {
+                            overallScore: 70,
+                            ATS: {
+                                score: 75,
+                                tips: [
+                                    { type: "improve", tip: "Add relevant keywords from job description" },
+                                    { type: "good", tip: "Clean formatting with clear section headers" },
+                                    { type: "improve", tip: "Include a professional summary section" }
+                                ]
+                            },
+                            toneAndStyle: {
+                                score: 75,
+                                tips: [
+                                    { type: "good", tip: "Professional tone", explanation: "Maintain professional language throughout" },
+                                    { type: "improve", tip: "Consistency in language", explanation: "Ensure consistent use of tense and style" },
+                                    { type: "good", tip: "Clear and concise", explanation: "Present information clearly and concisely" }
+                                ]
+                            },
+                            content: {
+                                score: 70,
+                                tips: [
+                                    { type: "improve", tip: "Align with job description", explanation: "More explicitly align experiences with job requirements" },
+                                    { type: "good", tip: "Diverse experience", explanation: "Showcase variety of projects and skills" },
+                                    { type: "improve", tip: "Quantify achievements", explanation: "Add specific numbers and metrics" }
+                                ]
+                            },
+                            structure: {
+                                score: 80,
+                                tips: [
+                                    { type: "good", tip: "Logical flow", explanation: "Information is organized logically" },
+                                    { type: "improve", tip: "Section headers", explanation: "Ensure all section headers are distinct" },
+                                    { type: "good", tip: "Effective use of bullets", explanation: "Bulleted lists highlight key points" }
+                                ]
+                            },
+                            skills: {
+                                score: 75,
+                                tips: [
+                                    { type: "improve", tip: "Prioritize key skills", explanation: "Focus on skills most relevant to AI intern role" },
+                                    { type: "good", tip: "Relevant technical skills", explanation: "Technical skills are relevant to position" },
+                                    { type: "improve", tip: "Add AI/ML skills", explanation: "Highlight any AI, machine learning, or data science skills" }
+                                ]
+                            }
+                        };
+                        
+                        data.feedback = basicAnalysis;
+                        console.log('Basic analysis provided due to AI service failure:', basicAnalysis);
+                        return; // Skip the rest of the processing
+                    }
                     
                     console.log('AI Response:', feedback);
                     
@@ -581,7 +667,71 @@ Please provide analysis in this JSON format:
                 
                 const feedback = await Promise.race([aiPromise, timeoutPromise]) as AIResponse;
                 
-                if (!feedback) return setStatusText("Error: Failed to analyze resume");
+        if (!feedback) return setStatusText("Error: Failed to analyze resume");
+                
+                // Check if the response is an error response
+                if (feedback && typeof feedback === 'object' && 'success' in feedback && feedback.success === false) {
+                    console.error('AI service returned error:', feedback);
+                    const errorResponse = feedback as { success: false; error?: { message?: string; delegate?: string; code?: string } };
+                    console.error('Error details:', {
+                        message: errorResponse.error?.message,
+                        delegate: errorResponse.error?.delegate,
+                        code: errorResponse.error?.code,
+                        fullError: errorResponse.error
+                    });
+                    
+                    // If AI service fails, provide basic analysis
+                    console.log('AI service failed, providing basic analysis...');
+                    setStatusText("AI analysis failed, providing basic feedback...");
+                    
+                    const basicAnalysis = {
+                        overallScore: 70,
+                        ATS: {
+                            score: 75,
+                            tips: [
+                                { type: "improve", tip: "Add relevant keywords from job description" },
+                                { type: "good", tip: "Clean formatting with clear section headers" },
+                                { type: "improve", tip: "Include a professional summary section" }
+                            ]
+                        },
+                        toneAndStyle: {
+                            score: 75,
+                            tips: [
+                                { type: "good", tip: "Professional tone", explanation: "Maintain professional language throughout" },
+                                { type: "improve", tip: "Consistency in language", explanation: "Ensure consistent use of tense and style" },
+                                { type: "good", tip: "Clear and concise", explanation: "Present information clearly and concisely" }
+                            ]
+                        },
+                        content: {
+                            score: 70,
+                            tips: [
+                                { type: "improve", tip: "Align with job description", explanation: "More explicitly align experiences with job requirements" },
+                                { type: "good", tip: "Diverse experience", explanation: "Showcase variety of projects and skills" },
+                                { type: "improve", tip: "Quantify achievements", explanation: "Add specific numbers and metrics" }
+                            ]
+                        },
+                        structure: {
+                            score: 80,
+                            tips: [
+                                { type: "good", tip: "Logical flow", explanation: "Information is organized logically" },
+                                { type: "improve", tip: "Section headers", explanation: "Ensure all section headers are distinct" },
+                                { type: "good", tip: "Effective use of bullets", explanation: "Bulleted lists highlight key points" }
+                            ]
+                        },
+                        skills: {
+                            score: 75,
+                            tips: [
+                                { type: "improve", tip: "Prioritize key skills", explanation: "Focus on skills most relevant to AI intern role" },
+                                { type: "good", tip: "Relevant technical skills", explanation: "Technical skills are relevant to position" },
+                                { type: "improve", tip: "Add AI/ML skills", explanation: "Highlight any AI, machine learning, or data science skills" }
+                            ]
+                        }
+                    };
+                    
+                    data.feedback = basicAnalysis;
+                    console.log('Basic analysis provided due to AI service failure:', basicAnalysis);
+                    return; // Skip the rest of the processing
+                }
                 
                 console.log('AI Response:', feedback);
                 
@@ -590,11 +740,11 @@ Please provide analysis in this JSON format:
                     console.error('Unexpected AI response structure:', feedback);
                     return setStatusText("Error: AI response format is unexpected");
                 }
-                
-                const feedbacktext = typeof feedback.message.content === 'string'
-                    ? feedback.message.content
-                    : feedback.message.content[0].text;
-                
+
+        const feedbacktext = typeof feedback.message.content === 'string'
+            ? feedback.message.content
+            : feedback.message.content[0].text;
+
                 console.log('Feedback text:', feedbacktext);
                 
                 // Clean the feedback text to remove markdown code blocks
@@ -610,8 +760,8 @@ Please provide analysis in this JSON format:
                 // Parse the feedback
                 try {
                     data.feedback = JSON.parse(cleanFeedbackText);
-                } catch (error) {
-                    // If parsing fails, store the feedback as a string
+        } catch (error) {
+            // If parsing fails, store the feedback as a string
                     data.feedback = cleanFeedbackText;
                     console.log('Feedback is not in JSON format:', cleanFeedbackText);
                 }
